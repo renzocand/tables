@@ -116,6 +116,24 @@ campos:
   `max` en ambos modulos. Helper `formatMonto(v)` devuelve el valor con
   formato de moneda peruana.
 
+## Deploy a GitHub Pages
+
+El repo incluye un workflow en `.github/workflows/deploy.yml` que builda y
+publica a GitHub Pages cada push a `main`.
+
+Pasos una vez:
+
+1. **Settings → Pages** del repo → **Source**: `GitHub Actions`.
+2. Push a `main`. El workflow corre solo.
+
+Notas de configuracion:
+
+- `vite.config.js` detecta `GITHUB_REPOSITORY` y ajusta `base` a `/<repo>/`
+  en Actions. En local sigue en `/`.
+- El router es `HashRouter` (rutas tipo `.../#/tanstack`) para evitar
+  redirecciones del lado de server — Pages no soporta SPA fallback por
+  defecto.
+
 ## Licencia
 
 MIT. Ambas librerias son MIT tambien.

@@ -1,27 +1,18 @@
-// Helper especifico del modulo TanStack: construye una matriz pivot cruzada
-// a partir de un arreglo plano. Solo lo usa CrossTabTable.jsx (TanStack no
-// trae pivot cruzado nativo). El modulo react-pivottable NO necesita esto
-// porque la libreria lo hace internamente.
+// Construye un pivot cruzado: matriz rows x columns con la metrica aplicada.
+//
+// metric acepta:
+//   'count'                     cuenta filas
+//   'countDistinct:<campo>'     cuenta valores distintos del campo
+//   'sum:<campo>'               suma del campo numerico
+//   'avg:<campo>'               promedio del campo numerico
+//
+// Para avg no se puede promediar promedios al calcular totales: se
+// acumula sum y count por separado y se divide al final.
 
-/**
- * Construye un pivot cruzado: rows x columns con una metrica.
- *
- * Formato de la metrica (string):
- *   - 'count'                  → conteo de registros
- *   - 'countDistinct:<campo>'  → conteo de valores distintos del campo
- *   - 'sum:<campo>'            → suma del campo numerico
- *   - 'avg:<campo>'            → promedio del campo numerico
- *
- * @param {Array}  data      arreglo de objetos planos
- * @param {string} rowField  campo que va en filas
- * @param {string} colField  campo que va en columnas
- * @param {string} metric    ver formato arriba
- * @returns {{ rows, columns, matrix, rowTotals, colTotals, grandTotal }}
- */
 export function buildCrossTab(data, rowField, colField, metric) {
-  const [metricType, metricField] = metric.split(':')
+  const [kind, field] = metric.split(':')
 
-  // 1) Descubrir los valores unicos que van a ir en filas y en columnas.
+  // Valores unicos de filas y columnas
   const rowSet = new Set()
   const colSet = new Set()
   for (const item of data) {
@@ -31,82 +22,114 @@ export function buildCrossTab(data, rowField, colField, metric) {
   const rows = [...rowSet].sort()
   const columns = [...colSet].sort()
 
-  // 2) Para sum y avg acumulamos dos matrices (suma y cuenta) porque el
-  //    promedio se calcula al final como suma/cuenta. Para countDistinct
-  //    usamos Sets temporales. Para count basta con un acumulador entero.
-  const matrix = {}      // valor final que se devuelve
-  const sumMatrix = {}   // solo para sum / avg
-  const cntMatrix = {}   // solo para avg (y reutilizable como count)
-  const setMatrix = {}   // solo para countDistinct
+  // Acumuladores por celda
+  const sum = makeMatrix(rows, columns, 0)
+  const count = makeMatrix(rows, columns, 0)
+  const distinct = kind === 'countDistinct' ? makeSetMatrix(rows, columns) : null
 
-  for (const r of rows) {
-    matrix[r] = {}; sumMatrix[r] = {}; cntMatrix[r] = {}; setMatrix[r] = {}
-    for (const c of columns) {
-      matrix[r][c] = 0
-      sumMatrix[r][c] = 0
-      cntMatrix[r][c] = 0
-      setMatrix[r][c] = new Set()
-    }
-  }
-
-  // 3) Poblar la matriz recorriendo el dataset una vez.
   for (const item of data) {
     const r = item[rowField]
     const c = item[colField]
-    const v = item[metricField]
 
-    if (metricType === 'countDistinct') {
-      setMatrix[r][c].add(v)
-    } else if (metricType === 'sum' || metricType === 'avg') {
-      sumMatrix[r][c] += Number(v) || 0
-      cntMatrix[r][c] += 1
-    } else {
-      // default: count
-      matrix[r][c] += 1
+    count[r][c] += 1
+
+    if (kind === 'sum' || kind === 'avg') {
+      const n = Number(item[field]) || 0
+      sum[r][c] += n
+    }
+
+    if (kind === 'countDistinct') {
+      distinct[r][c].add(item[field])
     }
   }
 
-  // 4) Consolidar la matriz final segun el tipo de metrica.
-  if (metricType === 'countDistinct') {
-    for (const r of rows) for (const c of columns) matrix[r][c] = setMatrix[r][c].size
-  } else if (metricType === 'sum') {
-    for (const r of rows) for (const c of columns) matrix[r][c] = sumMatrix[r][c]
-  } else if (metricType === 'avg') {
-    for (const r of rows) for (const c of columns) {
-      matrix[r][c] = cntMatrix[r][c] === 0 ? 0 : sumMatrix[r][c] / cntMatrix[r][c]
+  // Valor final de cada celda
+  const matrix = {}
+  for (const r of rows) {
+    matrix[r] = {}
+    for (const c of columns) {
+      if (kind === 'countDistinct') {
+        matrix[r][c] = distinct[r][c].size
+      } else if (kind === 'sum') {
+        matrix[r][c] = sum[r][c]
+      } else if (kind === 'avg') {
+        matrix[r][c] = count[r][c] === 0 ? 0 : sum[r][c] / count[r][c]
+      } else {
+        matrix[r][c] = count[r][c]
+      }
     }
   }
 
-  // 5) Totales por fila, columna y gran total.
-  //    Para avg reconstruimos el promedio global como sum/count para evitar
-  //    el error comun de "promediar promedios".
+  // Totales
   const rowTotals = {}
   const colTotals = {}
+  let grandTotal = 0
 
-  if (metricType === 'avg') {
+  if (kind === 'avg') {
+    // Para promedios: recalcular con sum/count agregados
     for (const r of rows) {
-      const s = columns.reduce((a, c) => a + sumMatrix[r][c], 0)
-      const n = columns.reduce((a, c) => a + cntMatrix[r][c], 0)
+      let s = 0
+      let n = 0
+      for (const c of columns) {
+        s += sum[r][c]
+        n += count[r][c]
+      }
       rowTotals[r] = n === 0 ? 0 : s / n
     }
+
     for (const c of columns) {
-      const s = rows.reduce((a, r) => a + sumMatrix[r][c], 0)
-      const n = rows.reduce((a, r) => a + cntMatrix[r][c], 0)
+      let s = 0
+      let n = 0
+      for (const r of rows) {
+        s += sum[r][c]
+        n += count[r][c]
+      }
       colTotals[c] = n === 0 ? 0 : s / n
     }
-    const sAll = rows.reduce((a, r) => a + columns.reduce((b, c) => b + sumMatrix[r][c], 0), 0)
-    const nAll = rows.reduce((a, r) => a + columns.reduce((b, c) => b + cntMatrix[r][c], 0), 0)
-    const grandTotal = nAll === 0 ? 0 : sAll / nAll
-    return { rows, columns, matrix, rowTotals, colTotals, grandTotal }
-  }
 
-  for (const r of rows) {
-    rowTotals[r] = columns.reduce((sum, c) => sum + matrix[r][c], 0)
+    let totalSum = 0
+    let totalCount = 0
+    for (const r of rows) {
+      for (const c of columns) {
+        totalSum += sum[r][c]
+        totalCount += count[r][c]
+      }
+    }
+    grandTotal = totalCount === 0 ? 0 : totalSum / totalCount
+  } else {
+    // count, countDistinct, sum: basta con sumar las celdas
+    for (const r of rows) {
+      let total = 0
+      for (const c of columns) total += matrix[r][c]
+      rowTotals[r] = total
+    }
+
+    for (const c of columns) {
+      let total = 0
+      for (const r of rows) total += matrix[r][c]
+      colTotals[c] = total
+    }
+
+    for (const r of rows) grandTotal += rowTotals[r]
   }
-  for (const c of columns) {
-    colTotals[c] = rows.reduce((sum, r) => sum + matrix[r][c], 0)
-  }
-  const grandTotal = rows.reduce((sum, r) => sum + rowTotals[r], 0)
 
   return { rows, columns, matrix, rowTotals, colTotals, grandTotal }
+}
+
+function makeMatrix(rows, columns, initialValue) {
+  const m = {}
+  for (const r of rows) {
+    m[r] = {}
+    for (const c of columns) m[r][c] = initialValue
+  }
+  return m
+}
+
+function makeSetMatrix(rows, columns) {
+  const m = {}
+  for (const r of rows) {
+    m[r] = {}
+    for (const c of columns) m[r][c] = new Set()
+  }
+  return m
 }

@@ -1,29 +1,5 @@
-// Datos de ejemplo - 60 expedientes de un sistema tipo workflow documental
-// Campos: id, empresa, estado, fecha, area, responsable, descripcion, monto
-// El campo "monto" (en soles) es el campo NUMERICO que permite demostrar
-// agregadores como sum, avg, min y max en ambos modulos.
-
-export const EMPRESAS = [
-  'Importadora del Pacifico SAC',
-  'Minera Andina SA',
-  'Textil Lima SRL',
-  'Agroexportadora Norte SAC',
-  'Constructora Central SAC',
-  'Pesquera del Sur SA'
-]
-
-export const ESTADOS = ['Pendiente', 'En Revision', 'Aprobado', 'Observado', 'Archivado']
-
-export const AREAS = ['Legal', 'Contable', 'Operaciones', 'Logistica', 'Comercial']
-
-export const RESPONSABLES = [
-  'Maria Garcia',
-  'Carlos Mendoza',
-  'Ana Torres',
-  'Luis Perez',
-  'Sofia Ramirez',
-  'Jorge Castillo'
-]
+// 60 expedientes de ejemplo. monto (S/) es el unico campo numerico;
+// el resto son categoricos.
 
 export const expedientes = [
   { id: 'EXP-2025-001', empresa: 'Importadora del Pacifico SAC', estado: 'Pendiente',   fecha: '2025-01-08', area: 'Legal',       responsable: 'Maria Garcia',    descripcion: 'Revision contrato importacion textiles',    monto:  28500 },
@@ -88,26 +64,24 @@ export const expedientes = [
   { id: 'EXP-2025-060', empresa: 'Pesquera del Sur SA',           estado: 'Aprobado',    fecha: '2025-09-10', area: 'Operaciones', responsable: 'Jorge Castillo',  descripcion: 'Certificacion HACCP planta',                monto: 134000 }
 ]
 
-// Extrae el mes (YYYY-MM) a partir de una fecha YYYY-MM-DD
-export function getMes(fechaStr) {
-  return fechaStr.slice(0, 7)
+// Campos categoricos que se pueden usar como filas, columnas o agrupamiento.
+export const DIMENSIONES = ['area', 'responsable', 'estado', 'empresa', 'mes']
+
+export function getMes(fecha) {
+  return fecha.slice(0, 7)
 }
 
-// Enriquece un expediente con un campo "mes" derivado de "fecha".
-// Ambos modulos (tanstack y react-pivottable) usan este helper para que
-// el campo "mes" este disponible como dimension del pivot.
 export function enriquecerExpediente(exp) {
   return { ...exp, mes: getMes(exp.fecha) }
 }
 
-// Formatea un numero como moneda peruana. Se usa para mostrar "monto"
-// en ambos modulos.
-const MONEY_FMT = new Intl.NumberFormat('es-PE', {
+const PEN = new Intl.NumberFormat('es-PE', {
   style: 'currency',
   currency: 'PEN',
   maximumFractionDigits: 0
 })
+
 export function formatMonto(v) {
   if (v == null || Number.isNaN(v)) return ''
-  return MONEY_FMT.format(v)
+  return PEN.format(v)
 }

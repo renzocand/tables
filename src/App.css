@@ -409,6 +409,13 @@
   transition: background 0.12s, color 0.12s;
 }
 .btn-export:hover { background: #2563eb; color: white; }
+
+/* Celdas numericas: alineadas a la derecha con ancho de digito uniforme. */
+.num {
+  text-align: right;
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
 .table-scroll { overflow-x: auto; max-height: 70vh; }
 
 .tt-table {

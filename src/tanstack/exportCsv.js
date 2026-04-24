@@ -1,30 +1,25 @@
-// Export a CSV de cualquier instancia de TanStack Table.
-//
-// Enfoque: recorremos las columnas visibles y los rows FILTRADOS (getRowModel)
-// para que el CSV refleje lo que el usuario esta viendo en pantalla. Si
-// quisieras exportar TODO el dataset ignorando filtros, usa table.getCoreRowModel().
-//
-// Notas de CSV:
-//   - Envolvemos todos los valores en comillas dobles y escapamos comillas
-//     internas (el truco `.replace(/"/g, '""')`).
-//   - Prefijamos con BOM (﻿) para que Excel en Windows detecte UTF-8
-//     y muestre bien tildes, eñes y el simbolo S/.
+// Export CSV de una instancia de TanStack Table. Exporta los rows filtrados
+// (no el dataset completo) para que respete lo que el usuario esta viendo.
 
 export function tableToCsv(table) {
-  const visibleColumns = table.getVisibleLeafColumns()
-  const headers = visibleColumns.map(c => stringifyHeader(c.columnDef.header))
+  const columns = table.getVisibleLeafColumns()
+  const rows = table.getRowModel().rows
 
-  const rows = table.getRowModel().rows.map(row =>
-    visibleColumns.map(col => {
-      const cell = row.getAllCells().find(c => c.column.id === col.id)
-      return cell ? stringifyValue(cell.getValue()) : ''
-    })
+  const headers = columns.map(col => {
+    const h = col.columnDef.header
+    return typeof h === 'string' ? h : col.id
+  })
+
+  const body = rows.map(row =>
+    columns.map(col => row.getValue(col.id) ?? '')
   )
 
-  return toCsvString([headers, ...rows])
+  const lines = [headers, ...body]
+  return lines.map(toCsvLine).join('\r\n')
 }
 
 export function downloadCsv(csv, filename) {
+  // BOM UTF-8 para que Excel en Windows detecte tildes y el simbolo S/
   const bom = '﻿'
   const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -34,25 +29,16 @@ export function downloadCsv(csv, filename) {
   a.download = filename
   document.body.appendChild(a)
   a.click()
-  document.body.removeChild(a)
+  a.remove()
+
   URL.revokeObjectURL(url)
 }
 
-// Header puede ser string o funcion/ReactNode. Si es string lo devolvemos,
-// si no intentamos un fallback al accessor key.
-function stringifyHeader(header) {
-  if (typeof header === 'string') return header
-  return ''
+function toCsvLine(cells) {
+  return cells.map(escapeCell).join(',')
 }
 
-function stringifyValue(v) {
-  if (v == null) return ''
-  if (typeof v === 'number') return String(v)
-  return String(v)
-}
-
-function toCsvString(rows) {
-  return rows
-    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    .join('\r\n')
+function escapeCell(value) {
+  const s = String(value).replace(/"/g, '""')
+  return `"${s}"`
 }

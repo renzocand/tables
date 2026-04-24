@@ -1,18 +1,12 @@
-import React from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import HomePage from './HomePage'
 import TanStackPage from './tanstack/TanStackPage'
 import PivotTablePage from './react-pivottable/PivotTablePage'
 import './App.css'
 
-// Shell principal: header estilo ERP, breadcrumb y enrutador.
-// Cada modulo vive bajo su propia ruta:
-//   /           -> home con las dos tarjetas
-//   /tanstack   -> Modulo 1 (TanStack Table v8)
-//   /pivottable -> Modulo 2 (react-pivottable)
 export default function App() {
-  const location = useLocation()
-  const isHome = location.pathname === '/'
+  const { pathname } = useLocation()
+  const isHome = pathname === '/'
 
   return (
     <div className="app">

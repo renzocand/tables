@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,8 +9,6 @@ import {
 import { formatMonto } from '../data/expedientes'
 import { tableToCsv, downloadCsv } from './exportCsv'
 
-// Vista plana — tabla simple con ordenamiento y filtrado global.
-// Representa el caso basico: solo listado, sin analisis.
 export default function FlatTable({ data }) {
   const [sorting, setSorting] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
@@ -26,7 +24,7 @@ export default function FlatTable({ data }) {
       accessorKey: 'monto',
       header: 'Monto (S/)',
       size: 130,
-      cell: info => <span style={{ textAlign: 'right', display: 'block' }}>{formatMonto(info.getValue())}</span>
+      cell: info => <span className="num">{formatMonto(info.getValue())}</span>
     },
     { accessorKey: 'descripcion', header: 'Descripcion', size: 320 }
   ], [])
@@ -43,8 +41,11 @@ export default function FlatTable({ data }) {
   })
 
   const handleExport = () => {
-    downloadCsv(tableToCsv(table), 'expedientes.csv')
+    const csv = tableToCsv(table)
+    downloadCsv(csv, 'expedientes.csv')
   }
+
+  const filteredCount = table.getFilteredRowModel().rows.length
 
   return (
     <div className="table-wrap">
@@ -56,7 +57,7 @@ export default function FlatTable({ data }) {
           onChange={e => setGlobalFilter(e.target.value)}
           className="filter-input"
         />
-        <div className="count">{table.getFilteredRowModel().rows.length} expedientes</div>
+        <div className="count">{filteredCount} expedientes</div>
         <button onClick={handleExport} className="btn-export">Exportar CSV</button>
       </div>
 

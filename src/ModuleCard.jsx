@@ -1,8 +1,5 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 
-// Tarjeta tipo modulo ERP — se usa en el home para cada libreria.
-// Al hacer clic navega a la ruta indicada.
 export default function ModuleCard({ to, title, subtitle, tagline, badges, accent, icon }) {
   return (
     <Link to={to} className="module-card" style={{ '--accent': accent }}>

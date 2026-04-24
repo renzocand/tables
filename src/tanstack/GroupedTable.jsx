@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -6,10 +6,10 @@ import {
   getExpandedRowModel,
   flexRender
 } from '@tanstack/react-table'
-import { formatMonto } from '../data/expedientes'
+import { formatMonto, DIMENSIONES } from '../data/expedientes'
 import { tableToCsv, downloadCsv } from './exportCsv'
 
-const FIELD_LABELS = {
+const LABELS = {
   empresa: 'Empresa',
   estado: 'Estado',
   area: 'Area',
@@ -17,15 +17,13 @@ const FIELD_LABELS = {
   mes: 'Mes'
 }
 
-// Vista agrupada — usa el motor de agrupamiento y agregacion NATIVO de
-// TanStack Table v8. El usuario elige un orden de agrupamiento (hasta 5
-// niveles) y la tabla muestra grupos expandibles con conteos y suma de
-// montos.
 export default function GroupedTable({ data }) {
   const [grouping, setGrouping] = useState(['area', 'responsable'])
   const [expanded, setExpanded] = useState({})
 
   const columns = useMemo(() => [
+    // aggregatedCell: () => null en las columnas categoricas evita que se
+    // muestre un valor raro en la fila del grupo (ej. "Legal" en grupo de area).
     { accessorKey: 'empresa',     header: 'Empresa',     aggregatedCell: () => null },
     { accessorKey: 'estado',      header: 'Estado',      aggregatedCell: () => null },
     { accessorKey: 'area',        header: 'Area',        aggregatedCell: () => null },
@@ -34,7 +32,6 @@ export default function GroupedTable({ data }) {
     {
       accessorKey: 'id',
       header: '# Expedientes',
-      // aggregationFn nativo de TanStack: 'count' cuenta filas del grupo.
       aggregationFn: 'count',
       aggregatedCell: info => <strong>{info.getValue()}</strong>,
       cell: info => info.getValue()
@@ -42,8 +39,6 @@ export default function GroupedTable({ data }) {
     {
       accessorKey: 'monto',
       header: 'Monto (S/)',
-      // 'sum' suma los valores del campo en el grupo. Lo mismo aplica para
-      // 'mean', 'min', 'max', 'median', etc.
       aggregationFn: 'sum',
       aggregatedCell: info => <strong>{formatMonto(info.getValue())}</strong>,
       cell: info => formatMonto(info.getValue())
@@ -64,13 +59,17 @@ export default function GroupedTable({ data }) {
   const addGrouping = (field) => {
     if (!grouping.includes(field)) setGrouping([...grouping, field])
   }
+
   const removeGrouping = (field) => {
     setGrouping(grouping.filter(g => g !== field))
   }
-  const handleExport = () => downloadCsv(tableToCsv(table), 'expedientes-agrupado.csv')
 
-  const availableFields = ['area', 'responsable', 'estado', 'empresa', 'mes']
-    .filter(f => !grouping.includes(f))
+  const handleExport = () => {
+    const csv = tableToCsv(table)
+    downloadCsv(csv, 'expedientes-agrupado.csv')
+  }
+
+  const availableFields = DIMENSIONES.filter(f => !grouping.includes(f))
 
   return (
     <div>
@@ -81,7 +80,7 @@ export default function GroupedTable({ data }) {
             {grouping.map((g, idx) => (
               <span key={g} className="chip">
                 <span className="chip-order">{idx + 1}</span>
-                {FIELD_LABELS[g]}
+                {LABELS[g]}
                 <button onClick={() => removeGrouping(g)} className="chip-x">×</button>
               </span>
             ))}
@@ -93,22 +92,20 @@ export default function GroupedTable({ data }) {
               >
                 <option value="">+ Agregar dimension</option>
                 {availableFields.map(f => (
-                  <option key={f} value={f}>{FIELD_LABELS[f]}</option>
+                  <option key={f} value={f}>{LABELS[f]}</option>
                 ))}
               </select>
             )}
           </div>
           <div className="hint">
-            Los grupos se jerarquizan en el orden mostrado. Clic en el chip "×" para quitar.
-            <br />
-            Total general: <strong>{data.length} expedientes</strong>
+            Clic en "×" para quitar. Total general: <strong>{data.length} expedientes</strong>.
           </div>
         </div>
       </div>
 
       <div className="table-wrap">
         <div className="table-toolbar">
-          <div className="count">{data.length} expedientes · agrupados por {grouping.length} dimensiones</div>
+          <div className="count">{data.length} expedientes · {grouping.length} niveles</div>
           <button onClick={handleExport} className="btn-export">Exportar CSV</button>
         </div>
 
@@ -132,7 +129,7 @@ export default function GroupedTable({ data }) {
                   className={row.getIsGrouped() ? `group-row group-depth-${row.depth}` : ''}
                 >
                   {row.getVisibleCells().map(cell => (
-                    <GroupedTableCell key={cell.id} cell={cell} row={row} />
+                    <GroupedCell key={cell.id} cell={cell} row={row} />
                   ))}
                 </tr>
               ))}
@@ -144,13 +141,9 @@ export default function GroupedTable({ data }) {
   )
 }
 
-// GroupedTableCell decide QUE pintar en cada celda segun el tipo:
-//   1. Agrupada     → la celda cabecera del grupo (expansor + etiqueta).
-//   2. Agregada     → el valor agregado (count, sum, etc.) para esa fila grupo.
-//   3. Placeholder  → celda vacia porque el dato ya esta mostrado por la cabecera.
-//   4. Normal       → celda de una fila hoja (expediente individual).
-// Se extrae a un subcomponente para que el render principal quede legible.
-function GroupedTableCell({ cell, row }) {
+// Una celda en vista agrupada puede ser de 4 tipos: la cabecera del grupo,
+// un valor agregado (count/sum), un placeholder vacio o una celda normal.
+function GroupedCell({ cell, row }) {
   if (cell.getIsGrouped()) {
     return (
       <td className="group-cell">
@@ -166,18 +159,16 @@ function GroupedTableCell({ cell, row }) {
   }
 
   if (cell.getIsAggregated()) {
+    const render = cell.column.columnDef.aggregatedCell ?? cell.column.columnDef.cell
     return (
       <td className="aggregated-cell">
-        {flexRender(
-          cell.column.columnDef.aggregatedCell ?? cell.column.columnDef.cell,
-          cell.getContext()
-        )}
+        {flexRender(render, cell.getContext())}
       </td>
     )
   }
 
   if (cell.getIsPlaceholder()) {
-    return <td></td>
+    return <td />
   }
 
   return (
