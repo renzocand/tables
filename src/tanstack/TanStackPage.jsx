@@ -2,12 +2,16 @@ import { useMemo, useState } from 'react'
 import FlatTable from './FlatTable'
 import GroupedTable from './GroupedTable'
 import CrossTabTable from './CrossTabTable'
+import GroupedDndTable from './GroupedDndTable'
+import PivotDndTable from './PivotDndTable'
 import { expedientes, enriquecerExpediente } from '../data/expedientes'
 
 const TABS = [
   { id: 'flat',    label: '1. Vista plana',         desc: 'Listado simple tal como luce hoy en el sistema.' },
   { id: 'grouped', label: '2. Vista agrupada',      desc: 'Agrupamiento jerarquico con conteos y suma de monto.' },
-  { id: 'pivot',   label: '3. Vista pivot cruzada', desc: 'Pivot estilo Excel: Filas x Columnas x Metrica, con totales.' }
+  { id: 'pivot',   label: '3. Vista pivot cruzada', desc: 'Pivot estilo Excel: Filas x Columnas x Metrica, con totales.' },
+  { id: 'dnd',     label: '4. Drag and drop',       desc: 'Misma vista agrupada pero con chips arrastrables. Requiere @dnd-kit/core + @dnd-kit/sortable.' },
+  { id: 'pivotdnd',label: '5. Pivot DnD',           desc: 'Estilo react-pivottable: 4 zonas arrastrables (Disponibles / Filas / Columnas / Valores) sobre TanStack + dnd-kit.' }
 ]
 
 export default function TanStackPage() {
@@ -46,6 +50,8 @@ export default function TanStackPage() {
       {activeTab === 'flat'    && <FlatTable data={data} />}
       {activeTab === 'grouped' && <GroupedTable data={data} />}
       {activeTab === 'pivot'   && <CrossTabTable data={data} />}
+      {activeTab === 'dnd'     && <GroupedDndTable data={data} />}
+      {activeTab === 'pivotdnd'&& <PivotDndTable data={data} />}
     </div>
   )
 }
