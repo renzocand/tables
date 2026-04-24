@@ -1,0 +1,23 @@
+{
+  "name": "tables-lab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Demo comparativa: TanStack Table v8 vs react-pivottable sobre el mismo dataset (React 18.3 + Vite)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tanstack/react-table": "^8.20.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-pivottable": "^0.11.1",
+    "react-router-dom": "^7.14.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}
