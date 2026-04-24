@@ -58,7 +58,8 @@ una, copias **esa carpeta + `src/data/`** a tu proyecto y listo.
     │   ├── FlatTable.jsx          Vista plana
     │   ├── GroupedTable.jsx       Vista agrupada (grouping nativo)
     │   ├── CrossTabTable.jsx      Vista pivot cruzada (custom)
-    │   └── pivot.js               buildCrossTab (solo aqui)
+    │   ├── pivot.js               buildCrossTab (count / countDistinct / sum / avg)
+    │   └── exportCsv.js           Utilidad de export a CSV desde una tabla
     └── react-pivottable/          Modulo 2 (auto-contenido)
         └── PivotTablePage.jsx     PivotTableUI con estado controlado
 ```
@@ -70,18 +71,19 @@ una, copias **esa carpeta + `src/data/`** a tu proyecto y listo.
 TanStack es **headless**: entrega el modelo de datos (ordenado, filtrado,
 agrupado) y tu escribes el render. Mas codigo, maximo control.
 
-- **Vista plana** — listado simple con ordenamiento por columna y filtro
-  global.
-- **Vista agrupada** — usa `getGroupedRowModel` + `aggregationFn: 'count'`.
-  Agrupamiento multi-nivel encadenado (hasta 5 dimensiones) con grupos
-  expandibles.
+- **Vista plana** — listado simple con ordenamiento por columna, filtro
+  global y **export a CSV**.
+- **Vista agrupada** — usa `getGroupedRowModel` + `aggregationFn: 'count'` y
+  `'sum'`. Agrupamiento multi-nivel encadenado (hasta 5 dimensiones) con
+  grupos expandibles, conteo y **suma de monto** por grupo.
 - **Vista pivot cruzada** — TanStack no trae pivot cruzado nativo, asi que
   se preprocesa con `buildCrossTab` (en `src/tanstack/pivot.js`) y se
-  renderiza con columnas dinamicas. Incluye totales por fila, por columna y
-  total general.
+  renderiza con columnas dinamicas. Soporta metricas `count`,
+  `countDistinct`, `sum` y `avg`. Incluye totales por fila, por columna y
+  total general, con export a CSV.
 
-Agregadores nativos disponibles: `sum`, `min`, `max`, `extent`, `mean`,
-`median`, `unique`, `uniqueCount`, `count`.
+Agregadores nativos disponibles en TanStack: `sum`, `min`, `max`, `extent`,
+`mean`, `median`, `unique`, `uniqueCount`, `count`.
 
 ### Modulo 2 — react-pivottable
 
@@ -90,9 +92,13 @@ Entrega **la UI completa** — tu pasas `data` y un estado inicial opcional.
 
 - Barra de campos arrastrables arriba.
 - Zonas drop para filas y columnas.
-- Selector de agregador (Count, Count Unique Values, Sum, Average, Min, Max…).
-- Selector de renderer (Table, Table Heatmap, Row Heatmap, Col Heatmap). Si
-  instalas ademas `react-plotly.js` + `plotly.js` desbloqueas graficos.
+- Selector de agregador (Count, Count Unique Values, Sum, Average, Min, Max…)
+  — con el campo numerico `monto` puedes probar todos sin cambiar una linea.
+- Selector de renderer (Table, Table Heatmap, Row Heatmap, Col Heatmap,
+  **Exportable TSV**). Si instalas ademas `react-plotly.js` + `plotly.js`
+  desbloqueas graficos.
+- **Export**: el renderer "Exportable TSV" muestra la tabla actual como TSV
+  listo para pegar en Excel (equivalente al CSV del modulo TanStack).
 
 Menos codigo, menos control fino del render. Ideal para tableros donde el
 usuario final debe explorar la data sin intervencion de desarrollo.
@@ -103,9 +109,12 @@ usuario final debe explorar la data sin intervencion de desarrollo.
 campos:
 
 - `id` — identificador (`EXP-2025-###`)
-- `empresa`, `estado`, `area`, `responsable`
+- `empresa`, `estado`, `area`, `responsable` (dimensiones categoricas)
 - `fecha` (`YYYY-MM-DD`) y `mes` (`YYYY-MM`) derivado por `enriquecerExpediente`
 - `descripcion`
+- `monto` — **campo numerico** (en soles) para probar `sum`, `avg`, `min`,
+  `max` en ambos modulos. Helper `formatMonto(v)` devuelve el valor con
+  formato de moneda peruana.
 
 ## Licencia
 

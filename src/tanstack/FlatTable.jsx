@@ -6,6 +6,8 @@ import {
   getFilteredRowModel,
   flexRender
 } from '@tanstack/react-table'
+import { formatMonto } from '../data/expedientes'
+import { tableToCsv, downloadCsv } from './exportCsv'
 
 // Vista plana — tabla simple con ordenamiento y filtrado global.
 // Representa el caso basico: solo listado, sin analisis.
@@ -20,6 +22,12 @@ export default function FlatTable({ data }) {
     { accessorKey: 'fecha',       header: 'Fecha',       size: 110 },
     { accessorKey: 'area',        header: 'Area',        size: 120 },
     { accessorKey: 'responsable', header: 'Responsable', size: 160 },
+    {
+      accessorKey: 'monto',
+      header: 'Monto (S/)',
+      size: 130,
+      cell: info => <span style={{ textAlign: 'right', display: 'block' }}>{formatMonto(info.getValue())}</span>
+    },
     { accessorKey: 'descripcion', header: 'Descripcion', size: 320 }
   ], [])
 
@@ -34,6 +42,10 @@ export default function FlatTable({ data }) {
     getFilteredRowModel: getFilteredRowModel()
   })
 
+  const handleExport = () => {
+    downloadCsv(tableToCsv(table), 'expedientes.csv')
+  }
+
   return (
     <div className="table-wrap">
       <div className="table-toolbar">
@@ -45,6 +57,7 @@ export default function FlatTable({ data }) {
           className="filter-input"
         />
         <div className="count">{table.getFilteredRowModel().rows.length} expedientes</div>
+        <button onClick={handleExport} className="btn-export">Exportar CSV</button>
       </div>
 
       <div className="table-scroll">

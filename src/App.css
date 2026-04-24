@@ -396,6 +396,19 @@
   color: #6b7280;
   white-space: nowrap;
 }
+.btn-export {
+  padding: 7px 12px;
+  border: 1px solid #2563eb;
+  background: white;
+  color: #2563eb;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+}
+.btn-export:hover { background: #2563eb; color: white; }
 .table-scroll { overflow-x: auto; max-height: 70vh; }
 
 .tt-table {
