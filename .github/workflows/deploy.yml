@@ -17,6 +17,11 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+# Fuerza a las actions a correr en Node 24 (en vez del default 20 que esta
+# siendo deprecado). Quita esta linea una vez que Node 24 sea el default.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
